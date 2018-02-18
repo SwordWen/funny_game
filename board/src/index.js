@@ -7,6 +7,8 @@ import './index.css';
 // ReactDOM.render(<App />, document.getElementById('root'));
 // registerServiceWorker();
 
+import fetch from 'node-fetch';
+
 function Square(props) {
   return (
     <button className="square" onClick={props.onClick}>
@@ -43,27 +45,27 @@ class Board extends React.Component {
       </div>);
   }
 
-    renderBoard(size) {
-      var numbers = [];
-      for(var i=0; i< size; i++)
-      {
-        numbers[i]=i;
-      }
-      // const rows = numbers.map((i) =>
-      //   <Square
-      //         value={this.props.squares[i]}
-      //         onClick={() => this.props.onClick(i)}
-      //       />
-      // );
-      const board = numbers.map((i) =>
-       <div key={i.toString()} className="board-row">
-        {this.renderSquares(i, size)}  
-      </div>
-      );
-      return (
-        <div key="board" className="board">
-        {board}    
-        </div>);
+  renderBoard(size) {
+    var numbers = [];
+    for(var i=0; i< size; i++)
+    {
+      numbers[i]=i;
+    }
+    // const rows = numbers.map((i) =>
+    //   <Square
+    //         value={this.props.squares[i]}
+    //         onClick={() => this.props.onClick(i)}
+    //       />
+    // );
+    const board = numbers.map((i) =>
+      <div key={i.toString()} className="board-row">
+      {this.renderSquares(i, size)}  
+    </div>
+    );
+    return (
+      <div key="board" className="board">
+      {board}    
+      </div>);
   }
 
   render() {
@@ -117,6 +119,13 @@ class Game extends React.Component {
       stepNumber: history.length,
       xIsNext: !this.state.xIsNext
     });
+    fetch('http://127.0.0.1:5000/')
+    .then(res => res.text())
+    .then(body => console.log(body));
+
+    // fetch('http://127.0.0.1:5000/')
+    // .then(res => res.json())
+    // .then(json => console.log(json));
   }
 
   jumpTo(step) {
