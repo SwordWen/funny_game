@@ -7,14 +7,34 @@
 -->
 <script src="jquery/3.3.1/jquery.min.js" type="text/javascript" charset="utf-8"></script>  
 
-<link type="text/css" rel="stylesheet" href="style.css" />    
+
+<link type="text/css" rel="stylesheet" href="style.css" />   
+
 <script>
+
+var board_size = 11;
+var myTable= "<table id='board'>";
+
+for (var i=0; i<board_size; i++) {
+
+	myTable+="<tr>";
+	for (var j=0; j<board_size; j++)
+	{
+		myTable+="<td id='" + (i*board_size + j) + "' style='width: 35px; height: 35px; text-align: center; font-size: 30px;'></td>";
+	}
+	myTable+="</tr>";
+}  
+myTable+="</table>";
+document.write( myTable);
+
+
 $(document).ready(function(){
 
 	var move = 1;
 	var play = true;
 	
 	$("#board tr td").click(function() {
+		console.log("click " + $(this).attr('id'));
 		if ($(this).text()=="" && play) {
 			if ((move%2)==1) { $(this).append("X"); } 
 			else { $(this).append("O"); }
@@ -53,7 +73,7 @@ $(document).ready(function(){
 </head>
 <body>
 
-<table id='board'>
+<table id='board_3'>
 	<tr>
 		<td></td><td></td><td></td>
 	</tr>
