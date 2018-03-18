@@ -10,7 +10,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="bootstrap/3.3.7/css/bootstrap.min.css">
-
+  <link type="text/css" rel="stylesheet" href="style.css" />
   <script src="jquery/3.3.1/jquery.min.js" type="text/javascript" charset="utf-8"></script>  
   <script src="bootstrap/3.3.7/js/bootstrap.min.js"></script>
 
@@ -46,33 +46,120 @@ function draw_board(board_size) {
 $(document).ready(function(){
 
 	var board_size = 3;
+	var win_length = 3;
 	myTable =draw_board(board_size);
 	$("#board").html(myTable);
-	var move = 1;
+	var move_count = 1;
 	var play = true;
+	var myVar;
+	var game_id = "";
+	var human_player = 1;
+	var playerJustMoved = 2;
+	var winner = 0;
 
 	$("#start").click(function(){
-		$.ajax({url: "http://localhost:5000/start", async: false, success: function(result){
-			$("#status").html(result);
-		}});
+		human_player = $( "select#sel_player" ).val();
+		$.ajax({type: "POST", url: "http://localhost:5000/start", 
+		data: JSON.stringify({ "user": "demo", "human_player" : human_player, "board_size":board_size, "win_length":win_length }) , 
+		async: false, contentType: 'application/json', success: function(result){
+			//console.log(result);
+			console.log("start:" + JSON.stringify(result));
+			//var obj = JSON.parse( result );
+			game_id = result.game_id;
+			console.log(game_id);
+			$("#status").html(game_id);
+			}
+		});
+		//myVar = setInterval(myTimer, 1000);
+
+		// $.post("http://localhost:5000/start",  JSON.stringify({ "userName": "demo", "password" : "test" }),
+		// 	function(data,status){
+		// 		$("#status").html(data);
+		// 	},
+		// 	'application/json'
+		// );
+
+	});
+
+
+	$("#stop").click(function(){
+
+		$.ajax({type: "POST", url: "http://localhost:5000/stop",data: JSON.stringify({'game_id': game_id}) ,
+		 async: false, contentType: 'application/json', success: function(result){
+			$("#status").html(result);}});
+			
+		clearInterval(myVar);
+
 	});
 
 	$( "select#sel_board_size" ).change(function() {
 		board_size = $(this).val();
 		myTable =draw_board(board_size);
 		$("#board").html(myTable);
-		move = 1;
+		move_count = 1;
 		play = true;
 	});
 
 	$("#board tr td").click(function() {
 		console.log("click " + $(this).attr('id'));
 		if ($(this).text()=="" && play) {
-			if ((move%2)==1) { $(this).append("x"); } 
-			else { $(this).append("o"); }
-			move++;
+			if((playerJustMoved + 1) % 2 == human_player && winner <=0 )
+			{
+
+				//console.log("click:" + $(this).attr('id'));
+				var move = $(this).attr('id');
+				$.ajax({type: "POST", url: "http://localhost:5000/play",
+					data: JSON.stringify({'game_id': game_id, 'move': move}) ,
+		 			async: false, contentType: 'application/json', success: function(result){
+					$("#status").html(result);
+					playerJustMoved = (playerJustMoved + 1) % 2
+					if ((move_count%2)==1) { $("td#"+move).append("x"); } 
+					else { $("td#"+string(move)).append("o"); }
+					move_count++;
+					myVar = setInterval(myTimer, 1000);
+				}});
+
+				
+			}
 		}
 	});
+
+	//var myVar = setInterval(myTimer, 1000);
+
+	function myTimer() {
+		$.ajax({type: "POST", url: "http://localhost:5000/nextstep",
+				data: JSON.stringify({'game_id': game_id}) ,
+				async: false, contentType: 'application/json', success: function(result){
+				console.log(result);
+				$("#status").html(result);
+
+				var move = result.move;
+				winner = result.winner;
+
+				if(move != null && move>=0 && move<board_size*board_size)
+				{
+					playerJustMoved = (playerJustMoved + 1) % 2
+					if ((move_count%2)==1) { $("td#"+move).append("x"); } 
+					else { $("td#"+move).append("o"); }
+					move_count++;
+					
+					clearInterval(myVar);
+				}
+
+				if(winner >= 0 )
+				{
+					if(winner == 1 || winner ==2)
+					{
+						$("#status").html("winner is " + winner);
+					}
+					else{
+						$("#status").html("None wins.");
+					}
+					clearInterval(myVar);
+				}
+
+			}});
+	} 
 	
 });
 
@@ -100,6 +187,7 @@ $(document).ready(function(){
 			</div>
 			<div class="col-sm-4">
 				<h3>Game</h3>
+				<!-- 				
 				<label for="sel1">Select list (select one):</label>
 				<select class="form-control" id="sel_board_size">
 					<option>3</option>
@@ -110,8 +198,15 @@ $(document).ready(function(){
 					<option>13</option>
 					<option>19</option>
 				</select>
+				-->
+				<label for="sel1">Select player:</label>
+				<select class="form-control" id="sel_player">
+					<option value=1>X</option>
+					<option value=2>O</option>
+				</select>
 				<div id="status" class="status"><h3>Let AJAX change this text</h3></div>
-				<button id="start">Change Content</button>
+				<button id="start">Start</button>
+				<button id="stop">Stop</button>
 			</div>
   </div>
 </div>

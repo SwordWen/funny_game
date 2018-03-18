@@ -18,6 +18,12 @@
 from math import *
 import random
 
+import Queue
+
+import threading
+import time
+import logging
+
 class GameState:
     """ A state of the game, i.e. the game board. These are the only functions which are
         absolutely necessary to implement UCT in any 2-player complete information deterministic 
@@ -26,7 +32,7 @@ class GameState:
         By convention the players are numbered 1 and 2.
     """
     def __init__(self):
-            self.playerJustMoved = 2 # At the root pretend the player just moved is player 2 - player 1 has the first move
+        self.playerJustMoved = 2 # At the root pretend the player just moved is player 2 - player 1 has the first move
         
     def Clone(self):
         """ Create a deep clone of this game state.
@@ -504,8 +510,102 @@ def UCT(rootstate, itermax, verbose = False):
     else: print rootnode.ChildrenToString()
 
     return sorted(rootnode.childNodes, key = lambda c: c.visits)[-1].move # return the move that was most visited
-                
-def UCTPlayGame():
+
+class Game():
+    def __init__(self):
+        self.borad_size = 3
+        self.win_length = 3
+        self.q_in = Queue.Queue()
+        self.q_out = Queue.Queue()
+        self.game_thread = None
+        self.playerJustMoved = 2
+        self.human_player = 1
+        self.stop_flag = False
+        self.game_id = ""
+        self.winner = []
+
+    def start(self, borad_size, win_length, human_player, game_id):
+        self.borad_size = borad_size
+        self.win_length = win_length
+        self.human_player = human_player
+        self.game_id = game_id
+
+        self.game_thread = threading.Thread(target=UCTPlayGameWithHuman, args = 
+            (self.borad_size, self.win_length, self.human_player, self.q_in, self.q_out, self.winner, self.stop_flag))
+        #t.daemon = True
+        self.game_thread.start()
+        logging.info("start thread for game" + self.game_id)
+
+    def stop(self):
+        self.stop_flag = True
+        # for i in range(12):
+        #     if self.game_thread.is_alive():
+        #         time.sleep(5)
+        logging.info("stop thread for game" + self.game_id)
+
+    def try_to_get_next_step(self):   
+        winner = -1
+        if not ((self.playerJustMoved + 1) % 2 == self.human_player):
+            if not self.q_out.empty():
+                m = self.q_out.get()
+                self.playerJustMoved += 1
+                if len(self.winner)>0:
+                    winner = self.winner[0]
+                return m, winner
+        if len(self.winner)>0:
+            winner = self.winner[0]
+        return -1, winner
+
+    def play(self, move):
+        if self.game_thread.is_alive() and (self.playerJustMoved + 1) % 2 == self.human_player:
+            self.q_in.put(move)
+            self.playerJustMoved += 1
+    
+
+
+def UCTPlayGameWithHuman(borad_size, win_length, human_player, queue_in, queue_out, winner, stop_flag=False):
+    """ Play a sample game between two UCT players where each player gets a different number 
+        of UCT iterations (= simulations = tree nodes).
+    """
+    # state = OthelloState(4) # uncomment to play Othello on a square board of the given size
+    #state = OXOState() # uncomment to play OXO
+    # state = NimState(15) # uncomment to play Nim with the given number of starting chips
+
+    state = OXOStateEX(borad_size, win_length)
+    # state = OXOState()
+
+    m = -1
+    while (False == stop_flag and state.GetMoves() != []):
+        #print str(state)
+        state.PrintState()
+        print("\n")
+        if (state.playerJustMoved + 1) % 2 == human_player:
+            print("Wait for human player...")
+            while False == stop_flag:
+                if not queue_in.empty():
+                    m = queue_in.get()
+                    break
+        else:
+            print("Computer is playing...")
+            m = UCT(rootstate = state, itermax = 5000, verbose = False) # play with values for itermax and verbose = True
+            print "Best Move: " + str(m) + "\n"
+            queue_out.put(m)
+        state.DoMove(m)
+        state.PrintState()
+        print("\n")
+        if state.GetResult(state.playerJustMoved) == 1.0:
+            break
+    if state.GetResult(state.playerJustMoved) == 1.0:
+        print "Player " + str(state.playerJustMoved) + " wins!"
+        winner.append(state.playerJustMoved)
+    elif state.GetResult(state.playerJustMoved) == 0.0:
+        print "Player " + str(3 - state.playerJustMoved) + " wins!"
+        winner.append(3 - state.playerJustMoved)
+    else: 
+        print "Nobody wins!"
+        winner.append(0)
+
+def UCTPlayGameWithSelf():
     """ Play a sample game between two UCT players where each player gets a different number 
         of UCT iterations (= simulations = tree nodes).
     """
@@ -531,54 +631,44 @@ def UCTPlayGame():
         print "Player " + str(3 - state.playerJustMoved) + " wins!"
     else: print "Nobody wins!"
 
-def UCTPlayGameWithHuman():
-    """ Play a sample game between two UCT players where each player gets a different number 
-        of UCT iterations (= simulations = tree nodes).
+if __name__ == "__main__":
+    """ Play a single game to the end using UCT for both players. 
     """
-    # state = OthelloState(4) # uncomment to play Othello on a square board of the given size
-    #state = OXOState() # uncomment to play OXO
-    # state = NimState(15) # uncomment to play Nim with the given number of starting chips
+    #UCTPlayGameWithSelf()
+    #UCTPlayGameWithHuman(borad_size, win_length, human_player, q_in, q_out)
 
-    borad_size = 11
-    win_length = 5
-
-    # borad_size = 3
-    # win_length = 3
-    state = OXOStateEX(borad_size, win_length)
-    # state = OXOState()
+    borad_size = 3
+    win_length = 3
 
     print("please select player X or O: 1 for X, 2 for O, 0 for computer")
     human_player = int(raw_input("player:"))
     print("You are player -- " + str(human_player))
 
-    while (state.GetMoves() != []):
-        #print str(state)
-        state.PrintState()
-        print("\n")
-        if (state.playerJustMoved + 1) % 2 == human_player:
+    q_in = Queue.Queue()
+    q_out = Queue.Queue()
+    
+    t = threading.Thread(target=UCTPlayGameWithHuman, args = (borad_size, win_length, human_player, q_in, q_out))
+    #t.daemon = True
+    t.start()
+
+    playerJustMoved = 2
+    while t.is_alive():
+        if (playerJustMoved + 1) % 2 == human_player:
             print("please play with step x,y")
             step = raw_input("step:")
             index = step.split(",")
             m = int(index[0])+ int(index[1])*borad_size 
+            q_in.put(m)
+            playerJustMoved += 1
         else:
-            m = UCT(rootstate = state, itermax = 5000, verbose = False) # play with values for itermax and verbose = True
-            print "Best Move: " + str(m) + "\n"
-        state.DoMove(m)
-        state.PrintState()
-        print("\n")
-        if state.GetResult(state.playerJustMoved) == 1.0:
-            break
-    if state.GetResult(state.playerJustMoved) == 1.0:
-        print "Player " + str(state.playerJustMoved) + " wins!"
-    elif state.GetResult(state.playerJustMoved) == 0.0:
-        print "Player " + str(3 - state.playerJustMoved) + " wins!"
-    else: print "Nobody wins!"
+            while True:
+                if not q_out.empty():
+                    m = q_out.get()
+                    playerJustMoved += 1
+                    break
 
-if __name__ == "__main__":
-    """ Play a single game to the end using UCT for both players. 
-    """
-    #UCTPlayGame()
-    UCTPlayGameWithHuman()
+
+
 
             
                           
