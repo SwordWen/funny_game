@@ -45,8 +45,8 @@ function draw_board(board_size) {
 
 $(document).ready(function(){
 
-	var board_size = 3;
-	var win_length = 3;
+	var board_size = 11;
+	var win_length = 5;
 	myTable =draw_board(board_size);
 	$("#board").html(myTable);
 	var move_count = 1;
@@ -92,13 +92,13 @@ $(document).ready(function(){
 
 	});
 
-	$( "select#sel_board_size" ).change(function() {
-		board_size = $(this).val();
-		myTable =draw_board(board_size);
-		$("#board").html(myTable);
-		move_count = 1;
-		play = true;
-	});
+	// $( "select#sel_board_size" ).change(function() {
+	// 	board_size = $(this).val();
+	// 	myTable =draw_board(board_size);
+	// 	$("#board").html(myTable);
+	// 	move_count = 1;
+	// 	play = true;
+	// });
 
 	$("#board tr td").click(function() {
 		console.log("click " + $(this).attr('id'));
@@ -131,7 +131,7 @@ $(document).ready(function(){
 				data: JSON.stringify({'game_id': game_id}) ,
 				async: false, contentType: 'application/json', success: function(result){
 				console.log(result);
-				$("#status").html(result);
+				$("#status").html("waiting...");
 
 				var move = result.move;
 				winner = result.winner;
@@ -144,6 +144,7 @@ $(document).ready(function(){
 					move_count++;
 					
 					clearInterval(myVar);
+					$("#status").html("wait for player...");
 				}
 
 				if(winner >= 0 )

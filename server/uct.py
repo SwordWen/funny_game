@@ -24,6 +24,12 @@ import threading
 import time
 import logging
 
+from storage import SqliteGameHistory
+
+game_history = SqliteGameHistory()
+
+
+
 class GameState:
     """ A state of the game, i.e. the game board. These are the only functions which are
         absolutely necessary to implement UCT in any 2-player complete information deterministic 
@@ -499,6 +505,9 @@ def UCT(rootstate, itermax, verbose = False):
         # Rollout - this can often be made orders of magnitude quicker using a state.GetRandomMove() function
         while state.GetMoves() != []: # while state is non-terminal
             state.DoMove(random.choice(state.GetMoves()))
+        
+        print("Steps: {0}; Result: {1}".format(str(state.steps), state.GetResult(state.playerJustMoved)))
+        game_history.store_steps(state.steps, state.GetResult(state.playerJustMoved) * 10, {})
 
         # Backpropagate
         while node != None: # backpropagate from the expanded node and work back to the root node
@@ -573,6 +582,7 @@ def UCTPlayGameWithHuman(borad_size, win_length, human_player, queue_in, queue_o
 
     state = OXOStateEX(borad_size, win_length)
     # state = OXOState()
+    game_history.connect("./sqlite_game_history.db")
 
     m = -1
     while (False == stop_flag and state.GetMoves() != []):
@@ -604,6 +614,8 @@ def UCTPlayGameWithHuman(borad_size, win_length, human_player, queue_in, queue_o
     else: 
         print "Nobody wins!"
         winner.append(0)
+        
+    game_history.disconnect()
 
 def UCTPlayGameWithSelf():
     """ Play a sample game between two UCT players where each player gets a different number 
@@ -637,6 +649,8 @@ if __name__ == "__main__":
     #UCTPlayGameWithSelf()
     #UCTPlayGameWithHuman(borad_size, win_length, human_player, q_in, q_out)
 
+
+
     borad_size = 3
     win_length = 3
 
@@ -646,8 +660,10 @@ if __name__ == "__main__":
 
     q_in = Queue.Queue()
     q_out = Queue.Queue()
+
+    winner = []
     
-    t = threading.Thread(target=UCTPlayGameWithHuman, args = (borad_size, win_length, human_player, q_in, q_out))
+    t = threading.Thread(target=UCTPlayGameWithHuman, args = (borad_size, win_length, human_player, q_in, q_out, winner))
     #t.daemon = True
     t.start()
 
@@ -667,6 +683,7 @@ if __name__ == "__main__":
                     playerJustMoved += 1
                     break
 
+    
 
 
 
