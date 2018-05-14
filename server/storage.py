@@ -24,6 +24,9 @@ import argparse
 import sys
 import hashlib
 import time
+import uuid
+
+########################
 
 def hash_function(input_str):
     return hashlib.sha1(input_str).hexdigest()
@@ -42,6 +45,23 @@ def dict_to_str(key_value={}):
 def time_to_str(secs=None):
     "Exapmle: 2017-12-02 08:05:39 UTC"
     return time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime(secs))
+
+######################
+class TreeNode:
+    def __init__(self, parent = None):
+        # make a random UUID
+        self.node_id = uuid.uuid4()
+        self.parentNode = parent # "None" for the root node
+        self.childNodes = []
+        self.properties = {}
+
+    def getProp(key):
+        if key in self.properties.keys():
+            return self.properties[key]
+    
+    def setProp(key, value):
+        self.properties[key] = value
+        
 
 class SqliteGameHistory:
     """class to handle user information"""
@@ -78,9 +98,9 @@ class SqliteGameHistory:
         steps_seq = str(steps)
         index = hash_function(steps_seq)
         cur.execute('select index_id from steps_history where index_id=?', (index, ))
-        user = cur.fetchone()
+        index_record = cur.fetchone()
         #logging.debug("user_is_existing: {0}".format(user))
-        if user is None:
+        if index_record is None:
             return False
         else:
             return True
@@ -89,7 +109,7 @@ class SqliteGameHistory:
         steps_seq = str(steps)
         index = hash_function(steps_seq)
 
-        if self.record_is_existing(index.strip()) == False:
+        if self.record_is_existing(steps) == False:
             now_time = time_to_str()
             kv_str = dict_to_str(kv)
             flag = 0
@@ -104,4 +124,6 @@ class SqliteGameHistory:
         pass
 
     def build_policy_tree_from_history(self, flag=0):
+
+        "update top (100) table1 set field1 = 1 "
         pass

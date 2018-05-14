@@ -197,6 +197,7 @@ class OXOStateEX:
         st = OXOStateEX(self.board_size, self.win_length)
         st.playerJustMoved = self.playerJustMoved
         st.board = self.board[:]
+        st.steps = self.steps[:]
         st.board_size = self.board_size
         st.win_length = self.win_length
         return st

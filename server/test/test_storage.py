@@ -39,6 +39,9 @@ class TestSqliteGameHistory(unittest.TestCase):
 
         steps = [8, 4, 5, 7, 2, 3, 6, 1, 0] 
 
+
+        self.game_history.store_steps(steps, 1, {})
+        #test store same  steps
         self.game_history.store_steps(steps, 1, {})
 
         result = self.game_history.record_is_existing(steps)
@@ -61,9 +64,9 @@ class TestSqliteGameHistory(unittest.TestCase):
         steps_seq = str(steps)
         index = hash_function(steps_seq)
         # And this is the named style:
-        cur.execute('select index_id from steps_history where index_id=?', (index, ))
-        user = cur.fetchone()
-        self.assertEqual(user[0], index)
+        cur.execute('select count(index_id) from steps_history where index_id=?', (index, ))
+        count = cur.fetchone()
+        self.assertEqual(count[0], 1)
         con.close()
 
 
