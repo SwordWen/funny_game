@@ -52,7 +52,7 @@ class TreeNode:
         # make a random UUID
         self.node_id = uuid.uuid4()
         self.parentNode = parent # "None" for the root node
-        self.childNodes = []
+        self.childNodes = {}
         self.properties = {}
 
     def getProp(key):
@@ -124,6 +124,13 @@ class SqliteGameHistory:
         pass
 
     def build_policy_tree_from_history(self, flag=0):
+        while True:
+            cur = self.sqlite_conn.cursor()
+            cur.execute("update top (100) steps_history set flag = 1 where flag = 0")
+            self.sqlite_conn.commit()
+            for row in cur.execute('select steps, winner from steps_history where flag=1'):
+                print row
 
-        "update top (100) table1 set field1 = 1 "
-        pass
+            
+
+
