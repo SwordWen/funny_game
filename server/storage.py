@@ -25,6 +25,7 @@ import sys
 import hashlib
 import time
 import uuid
+from collections import deque
 
 ########################
 
@@ -48,25 +49,52 @@ def time_to_str(secs=None):
 
 ######################
 class TreeNode:
-    def __init__(self, parent = None):
+    def __init__(self, parent = None, height = None, index = None):
         # make a random UUID
-        self.node_id = uuid.uuid4()
+        #self.node_id = uuid.uuid4()
         self.parentNode = parent # "None" for the root node
+        self.height = height
+        self.index = index
         self.childNodes = {}
         self.properties = {}
 
-    def getProp(key):
+    def get_prop(self, key):
         if key in self.properties.keys():
             return self.properties[key]
     
-    def setProp(key, value):
+    def set_prop(self, key, value):
         self.properties[key] = value
+
+    def set_or_add_prop(self, key, value):
+        if key not in self.properties.keys():
+            self.properties[key] = value
+        else:
+            self.properties[key] += value
+
+    def add_child_if_not_existing(self, child_index):
+        if child_index not in self.childNodes.keys():
+            self.childNodes[child_index] = TreeNode(self, self.height + 1, child_index)
+        else:
+            logging.debug("add_child_if_not_existing: node with index({0}) is existing.".format(child_index))
+
+    def get_or_add_child(self, child_index):
+        if child_index not in self.childNodes.keys():
+           self.childNodes[child_index] = TreeNode(self, self.height + 1, child_index)        
+        return self.childNodes[child_index]
+
+    def get_child(self, child_index):
+        if child_index in self.childNodes.keys():
+            return self.childNodes[child_index]
+        else:
+            return None
+
         
 
 class SqliteGameHistory:
     """class to handle user information"""
 
     sqlite_conn = None
+    root_tree_node = TreeNode(None, 0, 0)
 
     def is_connected(self):
         if self.sqlite_conn is None:
@@ -123,6 +151,53 @@ class SqliteGameHistory:
     def get_record_by_steps(self, steps=[]):
         pass
 
+    def update_tree_nodes(self, steps=[], result=0):
+        parent = self.root_tree_node
+        for step in steps:
+            child = parent.get_or_add_child(step)
+            child.set_or_add_prop("total", 1)
+            #Todo
+            if result == 10:
+                child.set_or_add_prop("success", 1)
+            elif result == 0:
+                child.set_or_add_prop("failure", 1)
+            parent = child
+
+    def get_tree_node(self, steps=[]):
+        parent = self.root_tree_node
+        step_node_map = {}
+        for step in steps:
+            child = parent.get_child(step)
+            step_node_map[step] = child
+        return step_node_map
+            
+
+
+    def dump_tree_nodes(self):
+        parent = self.root_tree_node
+
+        queue = deque()
+        for key, child in parent.childNodes.iteritems():
+            queue.append(child)
+            print("visit node: parent_index= {} height={}, index={}".format(parent.index, child.height, child.index))
+
+        while(len(queue) > 0):        
+            visit_node = queue.popleft()
+            for key, child in visit_node.childNodes.iteritems():
+                queue.append(child)
+                print("visit node: parent_index= {} height={}, index={}".format(visit_node.index, child.height, child.index))
+        
+
+    
+    def load_tree_nodes(self):
+        pass
+
+    def select_steps_from_history(self, count=10):
+        cur = self.sqlite_conn.cursor()
+        for row in cur.execute('select steps, winner from steps_history LIMIT 10'):
+            print row
+
+        
     def build_policy_tree_from_history(self, flag=0):
         while True:
             cur = self.sqlite_conn.cursor()
