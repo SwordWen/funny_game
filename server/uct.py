@@ -23,10 +23,13 @@ import Queue
 import threading
 import time
 import logging
+import argparse
 
 from storage import SqliteGameHistory
+from storage import CassandraGameHistory
 
-game_history = SqliteGameHistory()
+#game_history = SqliteGameHistory()
+game_history = None
 
 
 
@@ -619,21 +622,21 @@ def UCTPlayGameWithHuman(borad_size, win_length, human_player, queue_in, queue_o
         
     game_history.disconnect()
 
-def UCTPlayGameWithSelf():
+def UCTPlayGameWithSelf(borad_size, win_length):
     """ Play a sample game between two UCT players where each player gets a different number 
         of UCT iterations (= simulations = tree nodes).
     """
     # state = OthelloState(4) # uncomment to play Othello on a square board of the given size
     #state = OXOState() # uncomment to play OXO
     # state = NimState(15) # uncomment to play Nim with the given number of starting chips
-    state = OXOStateEX(11, 5)
+    state = OXOStateEX(borad_size, win_length)
     state.PrintState()
     while (state.GetMoves() != []):
         #print str(state)
         if state.playerJustMoved == 1:
             m = UCT(rootstate = state, itermax = 5000, verbose = False) # play with values for itermax and verbose = True
         else:
-            m = UCT(rootstate = state, itermax = 100, verbose = False)
+            m = UCT(rootstate = state, itermax = 5000, verbose = False)
         print "Best Move: " + str(m) + "\n"
         state.DoMove(m)
         state.PrintState()
@@ -645,45 +648,75 @@ def UCTPlayGameWithSelf():
         print "Player " + str(3 - state.playerJustMoved) + " wins!"
     else: print "Nobody wins!"
 
+def parse_args():
+    """parse argument"""
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('-t', '--type')
+    parser.add_argument('-p', '--port')
+    parser.add_argument('-a', '--addr')
+    parser.add_argument('-c', '--count', default=1)
+    parser.add_argument('-v', '--verbose', action='store_true', default=False)
+    parser.add_argument('-s', '--selfplay', action='store_true', default=False)
+
+    args = parser.parse_args()
+
+    return args
+
 if __name__ == "__main__":
     """ Play a single game to the end using UCT for both players. 
     """
     #UCTPlayGameWithSelf()
     #UCTPlayGameWithHuman(borad_size, win_length, human_player, q_in, q_out)
 
+    borad_size = 11
+    win_length = 5
 
+    args = parse_args()
 
-    borad_size = 3
-    win_length = 3
+    self_play = args.selfplay
+    count = int(args.count)
 
-    print("please select player X or O: 1 for X, 2 for O, 0 for computer")
-    human_player = int(raw_input("player:"))
-    print("You are player -- " + str(human_player))
-
-    q_in = Queue.Queue()
-    q_out = Queue.Queue()
-
-    winner = []
-    
-    t = threading.Thread(target=UCTPlayGameWithHuman, args = (borad_size, win_length, human_player, q_in, q_out, winner))
-    #t.daemon = True
-    t.start()
-
-    playerJustMoved = 2
-    while t.is_alive():
-        if (playerJustMoved + 1) % 2 == human_player:
-            print("please play with step x,y")
-            step = raw_input("step:")
-            index = step.split(",")
-            m = int(index[0])+ int(index[1])*borad_size 
-            q_in.put(m)
-            playerJustMoved += 1
+    if self_play == True:
+        game_history = CassandraGameHistory()
+        game_history.set_board_size(borad_size)
+        game_history.set_win_length(win_length)
+        game_history.connect("games", ["127.0.0.1"])
+        if count >=1 :
+            for i in range(count):
+                UCTPlayGameWithSelf(borad_size, win_length)
         else:
-            while True:
-                if not q_out.empty():
-                    m = q_out.get()
-                    playerJustMoved += 1
-                    break
+            UCTPlayGameWithSelf(borad_size, win_length)
+        game_history.disconnect()
+    else:
+        print("please select player X or O: 1 for X, 2 for O, 0 for computer")
+        human_player = int(raw_input("player:"))
+        print("You are player -- " + str(human_player))
+
+        q_in = Queue.Queue()
+        q_out = Queue.Queue()
+
+        winner = []
+        
+        t = threading.Thread(target=UCTPlayGameWithHuman, args = (borad_size, win_length, human_player, q_in, q_out, winner))
+        #t.daemon = True
+        t.start()
+
+        playerJustMoved = 2
+        while t.is_alive():
+            if (playerJustMoved + 1) % 2 == human_player:
+                print("please play with step x,y")
+                step = raw_input("step:")
+                index = step.split(",")
+                m = int(index[0])+ int(index[1])*borad_size 
+                q_in.put(m)
+                playerJustMoved += 1
+            else:
+                while True:
+                    if not q_out.empty():
+                        m = q_out.get()
+                        playerJustMoved += 1
+                        break
 
     
 

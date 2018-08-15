@@ -23,7 +23,7 @@ CREATE KEYSPACE games
   };
 
 CREATE TABLE games.steps_history ( 
-   id UUID PRIMARY KEY, 
+   id text PRIMARY KEY, 
    steps text, 
    flag int,
    winner int,
@@ -42,6 +42,10 @@ import hashlib
 import time
 import uuid
 from collections import deque
+
+
+##
+from cassandra.cluster import Cluster
 
 ########################
 
@@ -104,10 +108,72 @@ class TreeNode:
         else:
             return None
 
-        
+class GameHistory:
+    """class to handle game history information"""
+    def is_connected(self):
+        pass
+
+    def connect(self, database):
+        pass
+
+    def disconnect(self):
+        pass
+
+    def store_steps(self, board_size=3, steps=[], winner=0, kv={}):
+        pass
+
+class CassandraGameHistory:
+    """class to handle game history information"""
+    cluster = None
+    session = None
+    board_size = -1
+    win_length = -1
+
+    def is_connected(self):
+        return self.session != None
+
+    def connect(self, database, server_list=[]):
+        keyspace = database
+        self.cluster = Cluster(server_list)
+        self.session = self.cluster.connect(keyspace)
+
+    def disconnect(self):
+        pass
+
+    def set_board_size(self, board_size=-1):
+        self.board_size = board_size
+
+    def set_win_length(self, win_length=-1):
+        self.win_length = win_length
+
+    def store_steps(self, steps=[], winner=0, kv={}):
+        """
+CREATE TABLE games.steps_history_11_5 ( 
+   id text PRIMARY KEY, 
+   steps text, 
+   flag int,
+   winner int,
+   record_time text,
+   key_value text
+    );
+"""
+        table_name = "steps_history_{0}_{1}".format(self.board_size, self.win_length)
+        if self.is_connected():
+            steps_seq = str(steps)
+            index = hash_function(steps_seq)
+            now_time = time_to_str()
+            kv_str = dict_to_str(kv)
+            flag = 0
+            self.session.execute(
+                """
+                INSERT INTO steps_history_11_5 (id, steps, flag, winner, record_time, key_value)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                """,
+                (index, steps_seq, flag, int(winner), now_time, kv_str)
+            )  
 
 class SqliteGameHistory:
-    """class to handle user information"""
+    """class to handle game history information"""
 
     sqlite_conn = None
     root_tree_node = TreeNode(None, 0, 0)
@@ -118,7 +184,9 @@ class SqliteGameHistory:
         else:
             return True
 
-    def connect(self, data_file):
+    def connect(self, database):
+        """database: sqlite file"""
+        data_file = database
         if os.path.isfile(data_file):
             logging.info("Connect sqlite {0}".format(data_file))
             self.sqlite_conn = sqlite3.connect(data_file)
@@ -164,6 +232,8 @@ class SqliteGameHistory:
             self.sqlite_conn.commit()
             #logging.debug("[{0}] steps is stored.".format(index))
 
+
+    ##############################################
     def get_record_by_steps(self, steps=[]):
         pass
 
