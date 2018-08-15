@@ -18,7 +18,7 @@ from storage import hash_function
 
 class TestSqliteGameHistory(unittest.TestCase):
 
-    game_history = SqliteGameHistory()
+    
 
     def setUp(self):
         FORMAT = "%(asctime)-15s %(message)s"
@@ -31,32 +31,34 @@ class TestSqliteGameHistory(unittest.TestCase):
         logging.info("test_user_itest_store_steps_1nfo_operation:")
         sqlite_file = "game_history_test.db"
 
+        game_history = SqliteGameHistory()
+
         if os.path.isfile(sqlite_file):
             os.remove(sqlite_file)
 
-        self.game_history.connect(sqlite_file)        
+        game_history.connect(sqlite_file)        
         self.assertEqual(os.path.isfile(sqlite_file), True)
 
         steps = [8, 4, 5, 7, 2, 3, 6, 1, 0] 
 
 
-        self.game_history.store_steps(steps, 1, {})
+        game_history.store_steps(steps, 1, {})
         #test store same  steps
-        self.game_history.store_steps(steps, 1, {})
+        game_history.store_steps(steps, 1, {})
 
-        result = self.game_history.record_is_existing(steps)
+        result = game_history.record_is_existing(steps)
         self.assertEqual(result, True)
         
-        self.game_history.disconnect()
+        game_history.disconnect()
 
         # reopen db
-        self.game_history.connect(sqlite_file)    
+        game_history.connect(sqlite_file)    
             
         self.assertEqual(os.path.isfile(sqlite_file), True)
-        result = self.game_history.record_is_existing(steps)
+        result = game_history.record_is_existing(steps)
         self.assertEqual(result, True)
         
-        self.game_history.disconnect()
+        game_history.disconnect()
 
         # open db directly
         con = sqlite3.connect(sqlite_file)
@@ -68,6 +70,44 @@ class TestSqliteGameHistory(unittest.TestCase):
         count = cur.fetchone()
         self.assertEqual(count[0], 1)
         con.close()
+
+    def test_update_tree_nodes(self):
+        logging.info("test_select_steps_from_history:")
+        sqlite_file = "../sqlite_game_history.db"
+        """
+(u'[1, 0, 2, 3, 7, 6, 8, 4, 5]', 0)
+(u'[7, 5, 6, 3, 0, 1, 2, 4, 8]', 0)
+(u'[4, 6, 3, 8, 2, 7, 1, 5, 0]', 10)
+(u'[2, 5, 7, 0, 4, 3, 6, 1, 8]', 10)
+(u'[5, 8, 4, 0, 6, 2, 7, 3, 1]', 10)
+(u'[0, 7, 8, 4, 1, 5, 6, 2, 3]', 10)
+(u'[6, 3, 8, 0, 4, 5, 1, 2, 7]', 10)
+(u'[8, 3, 0, 5, 7, 1, 6, 4, 2]', 0)
+(u'[3, 1, 7, 8, 0, 5, 4, 2, 6]', 10)
+(u'[3, 5, 7, 0, 1, 2, 8, 6, 4]', 10)
+        """
+        game_history = SqliteGameHistory()
+        game_history.connect(sqlite_file) 
+        game_history.update_tree_nodes([1, 0, 2, 3, 7, 6, 8, 4, 5], 0)
+        game_history.update_tree_nodes([7, 5, 6, 3, 0, 1, 2, 4, 8], 0)
+        game_history.update_tree_nodes([4, 6, 3, 8, 2, 7, 1, 5, 0], 10)
+        game_history.update_tree_nodes([2, 5, 7, 0, 4, 3, 6, 1, 8], 10)
+        game_history.update_tree_nodes([3, 1, 7, 8, 0, 5, 4, 2, 6], 10)
+        game_history.update_tree_nodes([3, 5, 7, 0, 1, 2, 8, 6, 4], 10)
+        game_history.dump_tree_nodes()
+        game_history.disconnect()
+
+
+
+    def test_select_steps_from_history(self):
+        logging.info("test_select_steps_from_history:")
+        sqlite_file = "../sqlite_game_history.db"
+
+        game_history = SqliteGameHistory()
+        game_history.connect(sqlite_file)  
+        game_history.select_steps_from_history()
+        game_history.disconnect()
+              
 
 
 
