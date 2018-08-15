@@ -1,5 +1,6 @@
 
 """
+
 steps_history:
 | index     | steps                           | flag   | winner| record_time  | key_value               |
 | hash code | [8, 4, 5, 7, 2, 3, 6, 1, 0]     |   0    |       | 2018-5-9     | key1=value1;key2=value2 |
@@ -11,9 +12,24 @@ board layout:
 steps sequence: 
 [8, 4, 5, 7, 2, 3, 6, 1, 0] 
 
-
+1. sqlite:
 CREATE TABLE steps_history (index varchar(10), steps varchar(32), flag int, winner int, record_time varchar(32), key_value text)
 
+2. cql:
+CREATE KEYSPACE games
+  WITH REPLICATION = { 
+   'class' : 'SimpleStrategy', 
+   'replication_factor' : 1 
+  };
+
+CREATE TABLE games.steps_history ( 
+   id UUID PRIMARY KEY, 
+   steps text, 
+   flag int,
+   winner int,
+   record_time text,
+   key_value text
+    );
 """
 
 import os
@@ -146,7 +162,7 @@ class SqliteGameHistory:
                 , (index.strip(), steps_seq.strip(), flag, winner,  now_time.strip(), kv_str))
             #commit data change
             self.sqlite_conn.commit()
-            logging.info("[{0}] steps is stored.".format(index))
+            #logging.debug("[{0}] steps is stored.".format(index))
 
     def get_record_by_steps(self, steps=[]):
         pass

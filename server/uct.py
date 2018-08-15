@@ -507,7 +507,7 @@ def UCT(rootstate, itermax, verbose = False):
         while state.GetMoves() != []: # while state is non-terminal
             state.DoMove(random.choice(state.GetMoves()))
         
-        print("Steps: {0}; Result: {1}".format(str(state.steps), state.GetResult(state.playerJustMoved)))
+        #print("Steps: {0}; Result: {1}".format(str(state.steps), state.GetResult(state.playerJustMoved)))
         game_history.store_steps(state.steps, state.GetResult(state.playerJustMoved) * 10, {})
 
         # Backpropagate
@@ -516,8 +516,8 @@ def UCT(rootstate, itermax, verbose = False):
             node = node.parentNode
 
     # Output some information about the tree - can be omitted
-    if (verbose): print rootnode.TreeToString(0)
-    else: print rootnode.ChildrenToString()
+    if (verbose): print(rootnode.TreeToString(0))
+    else: print(rootnode.ChildrenToString())
 
     return sorted(rootnode.childNodes, key = lambda c: c.visits)[-1].move # return the move that was most visited
 
@@ -598,7 +598,8 @@ def UCTPlayGameWithHuman(borad_size, win_length, human_player, queue_in, queue_o
                     break
         else:
             print("Computer is playing...")
-            m = UCT(rootstate = state, itermax = 5000, verbose = False) # play with values for itermax and verbose = True
+            #m = UCT(rootstate = state, itermax = 5000, verbose = False) # play with values for itermax and verbose = True
+            m = UCT(rootstate = state, itermax = 500, verbose = False)
             print "Best Move: " + str(m) + "\n"
             queue_out.put(m)
         state.DoMove(m)
