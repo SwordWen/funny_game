@@ -46,6 +46,7 @@ from collections import deque
 
 ##
 from cassandra.cluster import Cluster
+from cassandra.auth import PlainTextAuthProvider
 
 ########################
 
@@ -134,7 +135,8 @@ class CassandraGameHistory:
 
     def connect(self, database, server_list=[]):
         keyspace = database
-        self.cluster = Cluster(server_list)
+        auth_provider = PlainTextAuthProvider(username='cassandra', password='cassandra')
+        self.cluster = Cluster(auth_provider=auth_provider, contact_points=server_list)
         self.session = self.cluster.connect(keyspace)
 
     def disconnect(self):
