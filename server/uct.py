@@ -23,10 +23,12 @@ import Queue
 import threading
 import time
 import logging
-import argparse
 
+##
 from storage import SqliteGameHistory
 from storage import CassandraGameHistory
+##
+from function import parse_args
 
 #game_history = SqliteGameHistory()
 game_history = None
@@ -648,20 +650,8 @@ def UCTPlayGameWithSelf(borad_size, win_length):
         print "Player " + str(3 - state.playerJustMoved) + " wins!"
     else: print "Nobody wins!"
 
-def parse_args():
-    """parse argument"""
-    parser = argparse.ArgumentParser()
 
-    parser.add_argument('-t', '--type')
-    parser.add_argument('-p', '--port')
-    parser.add_argument('-a', '--addr')
-    parser.add_argument('-c', '--count', default=1)
-    parser.add_argument('-v', '--verbose', action='store_true', default=False)
-    parser.add_argument('-s', '--selfplay', action='store_true', default=False)
-
-    args = parser.parse_args()
-
-    return args
+#python uct.py --selfplay --addr 127.0.0.1 --count 20
 
 if __name__ == "__main__":
     """ Play a single game to the end using UCT for both players. 
@@ -675,13 +665,19 @@ if __name__ == "__main__":
     args = parse_args()
 
     self_play = args.selfplay
-    count = int(args.count)
+    count = 1
+    server_list = ["127.0.0.1"]
+
+    if args.count != None:
+        count = int(args.count)
+    if args.addr != None:
+        server_list = str(args.addr).split(",")
 
     if self_play == True:
         game_history = CassandraGameHistory()
         game_history.set_board_size(borad_size)
         game_history.set_win_length(win_length)
-        game_history.connect("games", ["127.0.0.1"])
+        game_history.connect("games", server_list)
         if count >=1 :
             for i in range(count):
                 UCTPlayGameWithSelf(borad_size, win_length)
@@ -717,12 +713,4 @@ if __name__ == "__main__":
                         m = q_out.get()
                         playerJustMoved += 1
                         break
-
-    
-
-
-
-            
-                          
-            
 

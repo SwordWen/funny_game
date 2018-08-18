@@ -8,6 +8,7 @@ from flask import Response
 from flask_cors import CORS, cross_origin
 
 from uct import Game
+from function import init_log
 
 #from flask import Flask
 app = Flask(__name__, static_url_path='')
@@ -80,9 +81,7 @@ def next_step():
         return "can't find game" + str(game_id), 404
     
 
-def init_log():
-    FORMAT = '%(asctime)-15s %(message)s'
-    logging.basicConfig(level=logging.DEBUG,format=FORMAT)
+
 
 #FLASK_APP=server.py flask run
 #FLASK_APP=server.py flask run --host=0.0.0.0 --port=8080

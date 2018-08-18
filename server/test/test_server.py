@@ -15,6 +15,7 @@ import logging
 sys.path.append("../")
 
 import server
+import function
 
 class FlaskServerTest(unittest.TestCase):
 
@@ -34,5 +35,5 @@ class FlaskServerTest(unittest.TestCase):
     
 
 if __name__ == '__main__':
-    server.init_log()
+    function.init_log()
     unittest.main()
